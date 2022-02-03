@@ -12,6 +12,7 @@ import glob
 import streamlit as st
 import matplotlib.pyplot as plt
 import calmap
+import calplot
 import numpy as np
 
 data = bk.dados()
@@ -46,17 +47,26 @@ def acionaSite(estadoEstacao):
 
         Acumchuva = df[['DT_MEDICAO','DATETIME','DC_NOME','CHUVA']]
         tabela = Acumchuva.set_index(["DATETIME"])
-        tabela['CHUVA'] = tabela['CHUVA'].astype('float').resample('d').sum()
+        acumdia = tabela['CHUVA'].astype('float').resample('d').sum()
+        chuvasite = pd.merge(tabela['DC_NOME'], acumdia, on=['DATETIME'])
+        grafbarra = pd.DataFrame()
         chuva = pd.Series(tabela['CHUVA'])
+
+        
+        #plt.figure(figsize=(16,8))
+        #calmap.yearplot(data=chuva, year=2014)
+        #plt.suptitle('teste', y=.65, fontsize=20)
 
 
         if(variavel =='Temperatura e Umidade'):
             st.dataframe(dfsite)
         else:
-            st.dataframe(chuva)
-            #plt.figure(figsize=(16,8))
-            #calmap.yearplot(data=chuva, year=2014)
-            #plt.suptitle('Calendar Heatmap', y=.65, fontsize=20)
+            #st.dataframe(chuvasite)
+            st.bar_chart(chuvasite)
+            #calplot.calplot(chuva, cmap='Reds', figsize=(16,8))
+            #plt.suptitle('Calendar Heatmap', y=1.0, fontsize=20)
+            
+          
         
 
 if formRes: acionaSite(estadoEstacao)

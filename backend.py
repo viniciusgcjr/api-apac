@@ -6,6 +6,7 @@ import datetime
 
 
 # Formata a string que representa o link que será usado para download das estacoes.
+@st.cache
 def preparaLink(codigoEstacao, dataInicio, dataFim):
     url = 'https://apitempo.inmet.gov.br/estacao/'
     urlfim = url + "/" + str(dataInicio) + "/" +  str(dataFim) + "/" + codigoEstacao
@@ -13,6 +14,7 @@ def preparaLink(codigoEstacao, dataInicio, dataFim):
 
 
 # Prepara o arquivo json que foi gerado a partir do download dos dados direto no site do INMET
+@st.cache
 def dados( link = "https://apitempo.inmet.gov.br/estacoes/T"):
     resp = requests.get(link)
     return json.loads(resp.text)
