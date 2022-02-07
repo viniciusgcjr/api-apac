@@ -19,15 +19,17 @@ data = bk.dados()
 states = bk.retornaestados()
 
 
-st.title("INMET")
+st.title("Dados estações - INMET")
+#st.markdown("Projeto de estágio")
+
 
 estadoEstacao = st.sidebar.selectbox(
     "Selecione o estado da estação desejada:",
     (states.keys())
 )
 #estadoEstacao = st.sidebar.text_input("Estado da estação - Exemplo: PB:", "").upper()
-dataInicio = st.sidebar.date_input("dataini")
-dataFim = st.sidebar.date_input("datafinal")
+dataInicio = st.sidebar.date_input("data inicial")
+dataFim = st.sidebar.date_input("data final")
 variavel = st.sidebar.selectbox("Selecione a variável desejada:", ['Temperatura e Umidade', 'Precipitação'])
 formRes=st.sidebar.button("SUBMIT")
 
@@ -49,24 +51,25 @@ def acionaSite(estadoEstacao):
         tabela = Acumchuva.set_index(["DATETIME"])
         acumdia = tabela['CHUVA'].astype('float').resample('d').sum()
         chuvasite = pd.merge(tabela['DC_NOME'], acumdia, on=['DATETIME'])
-        grafbarra = pd.DataFrame()
-        chuva = pd.Series(tabela['CHUVA'])
+      
+      
+        #ax = chuvasite.plot.bar(x='DC_NOME', y='CHUVA',rot=0)
 
-        
+        chuva = pd.Series(tabela['CHUVA'])
         #plt.figure(figsize=(16,8))
         #calmap.yearplot(data=chuva, year=2014)
         #plt.suptitle('teste', y=.65, fontsize=20)
 
-
         if(variavel =='Temperatura e Umidade'):
             st.dataframe(dfsite)
         else:
+            st.write(tabela['DC_NOME'][0])
+            st.bar_chart(data=acumdia)
+            #st.pyplot(ax)
             #st.dataframe(chuvasite)
-            st.bar_chart(chuvasite)
+            #st.dataframe(acumdia)
             #calplot.calplot(chuva, cmap='Reds', figsize=(16,8))
             #plt.suptitle('Calendar Heatmap', y=1.0, fontsize=20)
             
-          
-        
 
 if formRes: acionaSite(estadoEstacao)
