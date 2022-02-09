@@ -15,29 +15,13 @@ import calmap
 import calplot
 import numpy as np
 
-data = bk.dados()
-states = bk.retornaestados()
-
-
 st.title("Dados estações - INMET")
-#st.markdown("Projeto de estágio")
-
-
-estadoEstacao = st.sidebar.selectbox(
-    "Selecione o estado da estação desejada:",
-    (states.keys())
-)
-#estadoEstacao = st.sidebar.text_input("Estado da estação - Exemplo: PB:", "").upper()
-dataInicio = st.sidebar.date_input("data inicial")
-dataFim = st.sidebar.date_input("data final")
-variavel = st.sidebar.selectbox("Selecione a variável desejada:", ['Temperatura e Umidade', 'Precipitação'])
-formRes=st.sidebar.button("SUBMIT")
-
+    #st.markdown("Projeto de estágio")
 
 def acionaSite(estadoEstacao):
     codigosEstacoes = bk.codigosEstacoes(data, estadoEstacao)
     for i in range(len(codigosEstacoes)):
-        link = bk.preparaLink(codigosEstacoes[i], dataInicio, dataFim)
+        link = bk.preparaLink(codigosEstacoes[i], dataInicio, dataFim, tipo='h') 
         dados = requests.get(link)
         dat = json.loads(dados.text)
         df = pd.json_normalize(dat)
@@ -50,26 +34,71 @@ def acionaSite(estadoEstacao):
         Acumchuva = df[['DT_MEDICAO','DATETIME','DC_NOME','CHUVA']]
         tabela = Acumchuva.set_index(["DATETIME"])
         acumdia = tabela['CHUVA'].astype('float').resample('d').sum()
-        chuvasite = pd.merge(tabela['DC_NOME'], acumdia, on=['DATETIME'])
+        chuvasite = pd.merge(tabela['DT_MEDICAO'], acumdia, on=['DATETIME'])
       
-      
-        #ax = chuvasite.plot.bar(x='DC_NOME', y='CHUVA',rot=0)
-
-        chuva = pd.Series(tabela['CHUVA'])
-        #plt.figure(figsize=(16,8))
-        #calmap.yearplot(data=chuva, year=2014)
-        #plt.suptitle('teste', y=.65, fontsize=20)
-
         if(variavel =='Temperatura e Umidade'):
             st.dataframe(dfsite)
-        else:
-            st.write(tabela['DC_NOME'][0])
-            st.bar_chart(data=acumdia)
-            #st.pyplot(ax)
-            #st.dataframe(chuvasite)
-            #st.dataframe(acumdia)
-            #calplot.calplot(chuva, cmap='Reds', figsize=(16,8))
-            #plt.suptitle('Calendar Heatmap', y=1.0, fontsize=20)
-            
+            csv = bk.convert_csv(dfsite)
+            st.download_button(label="Download", data=csv, file_name='dataframe.csv', mime='csv')
 
-if formRes: acionaSite(estadoEstacao)
+        elif(variavel == 'Precipitação'):
+            
+            if var != 'Mapa de Precipitação':
+                st.write(tabela['DC_NOME'][0])
+                bk.decideGrafico(var, chuvasite, dataInicio, dataFim)
+            else:
+                dfgeral = pd.DataFrame(data = None);
+                for i in range(len(codigosEstacoes)):
+                    link = bk.preparaLink(codigosEstacoes[i], dataInicio, dataFim, tipo='d') 
+                    dados = requests.get(link)
+                    dat = json.loads(dados.text)
+                    dfgeral = pd.json_normalize(dat)
+                    dfgeral = bk.convertee(dfgeral)
+                    dfgeral = dfgeral.rename(columns = {"VL_LATITUDE":"lat"})
+                    dfgeral = dfgeral.rename(columns = {"VL_LONGITUDE":"lon"})
+                    #st.dataframe(dmap)
+                    if (i == 0):
+                        dfgeral.to_csv('tabelaCompleta-' + estadoEstacao + '.csv', mode='w', header=True)
+                    else:
+                        dfgeral.to_csv('tabelaCompleta-' + estadoEstacao + '.csv', mode='a', header=False)
+                dmap = pd.read_csv('tabelaCompleta-RN.csv', delimiter=',')
+                dmap['lat'] = pd.to_numeric(dmap['lat'])
+                dmap['lon'] = pd.to_numeric(dmap['lon'])
+                dmap['CHUVA'] = pd.to_numeric(dmap['CHUVA'])
+                dmapa = dmap[['lat','lon', 'CHUVA']]
+#st.dataframe(dmapa)
+
+                bk.decideGrafico('Mapa de Precipitação', dmapa, dataInicio=None, dataFim=None)
+                break
+
+link = "https://apitempo.inmet.gov.br/estacoes/T"
+
+
+states = bk.retornaestados()
+estadoEstacao = st.sidebar.selectbox(
+    "Selecione o estado da estação desejada:",
+    (states.keys())
+)
+
+
+dataInicio = st.sidebar.date_input("Data inicial")
+dataFim = st.sidebar.date_input("Data final")
+variavel = st.sidebar.selectbox("Selecione a variável desejada:", ['Temperatura e Umidade', 'Precipitação'])
+
+if variavel == 'Precipitação':
+    var = st.sidebar.selectbox("Selecione abaixo a forma de visualização da precipitação:", ('Gráfico de Barras Modo Interativo', 'Mapa de Precipitação', 'Calendário'))
+
+
+
+if bk.validalink(link):
+    if dataFim < dataInicio:
+        st.warning('data errada')
+        st.button("Re-run")
+
+    data = bk.dados(link)
+    formRes=st.sidebar.button("SUBMIT")  
+    if formRes:
+        acionaSite(estadoEstacao)
+
+else:
+    st.warning('warnin')
